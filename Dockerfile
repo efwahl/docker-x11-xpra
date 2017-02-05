@@ -1,18 +1,18 @@
-FROM ubuntu:16.04
+FROM mintsrv:5000/tradeapp:0.3
 # Expose the SSH port
 EXPOSE 22
 
-RUN apt-get update && apt-get install -y curl \
-    && curl https://winswitch.org/gpg.asc | apt-key add - \
-    && echo "deb http://winswitch.org/ xenial main" > /etc/apt/sources.list.d/winswitch.list 
+# RUN apt-get install -y curl \
+#    && curl https://winswitch.org/gpg.asc | apt-key add - \
+#    && echo "deb http://winswitch.org/ xenial main" > /etc/apt/sources.list.d/winswitch.list
 
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server \
     x11-apps xterm language-pack-en-base \
-    xserver-xephyr i3 xpra
+    xserver-xephyr i3 xpra pulseaudio-utils pulseaudio jackd
 
 # Create OpenSSH privilege separation directory
-RUN mkdir /var/run/sshd 
+RUN mkdir /var/run/sshd
 
 RUN adduser --disabled-password --gecos "User" --uid 1000 user
 
@@ -24,10 +24,10 @@ VOLUME /home/user
 ENV DISPLAY=:100
 
 ADD xpra-display /tmp/xpra-display
-RUN echo "$(cat /tmp/xpra-display)\n$(cat /etc/bash.bashrc)" > /etc/bash.bashrc 
+RUN echo "$(cat /tmp/xpra-display)\n$(cat /etc/bash.bashrc)" > /etc/bash.bashrc
 
 # Start SSH anx Xpra
-CMD mkdir -p /home/user/.ssh/ && chown -R user:user /home/user \ 
-    && /usr/sbin/sshd && rm -f /tmp/.X100-lock \ 
-    && su user -c "xpra start $DISPLAY && sleep 1 && cp ~/.xpra/run-xpra /tmp/run-xpra \
+CMD mkdir -p /home/user/.ssh/ && chown -R user:user /home/user \
+    && /usr/sbin/sshd && rm -f /tmp/.X100-lock \
+    && su user -c "xpra start --no-pulseaudio $DISPLAY && sleep 1 && cp ~/.xpra/run-xpra /tmp/run-xpra \
     && cat /tmp/run-xpra | grep -v affinity > ~/.xpra/run-xpra && sleep infinity"
